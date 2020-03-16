@@ -1,5 +1,9 @@
 # SIM202
 
-### Important ###
+4 codes :
 
-Bertrand est ce que tu peux telecharger juîter stp ?
+Traitement des données
+Reg linéaire
+Gam
+Arbre de reg
+
