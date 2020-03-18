@@ -1,0 +1,72 @@
+#pour lire le fichier, on selectionne les lignes de codes que l'on veut run et on fait ctrl + entree
+#import
+rm()#comme clear all, met a jour des var
+train<-read.csv("Data/train.csv",header=TRUE)
+sample_submission<-read.csv("Data/sample_submission.csv",header=TRUE)
+head(sample_submission)
+
+###Nettoyage de la base de donnÃ©es###
+sequence=which(is.na(train$RH_6))
+for (i in sequence)
+{train$RH_6[i]=10}
+
+#summary(train$RH_6)
+which(is.na(train$Visibility))
+
+sequence2=which(is.na(train$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(train$Visibility[i+k])==is.na(train$Visibility[i]))
+  {k=k+1}
+  while (is.na(train$Visibility[i-j])==is.na(train$Visibility[i]))
+  {j=j+1}
+  train$Visibility[i]=0.5*(train$Visibility[i-j]+train$Visibility[i+k])
+}
+ 
+###Regression
+
+library(MASS)
+level=10000
+Data=train[1:level,-1]
+Data=Data[,-33]
+Data=Data[,-30]
+Data=Data[,-30]
+Data=Data[,-30]
+fitstart=lm(Appliances~1,data=Data)
+fitall=lm(Appliances~.,data=Data)
+summary(fitstop)
+
+step.model <- stepAIC(fitall, direction = "backward",data=train[1:level,])
+
+summary(step.model)
+names(step.model)
+step.model$anova
+
+Databis=train[level:13964,-1]
+Databis=Databis[,-33]
+Databis=Databis[,-30]
+Databis=Databis[,-30]
+Databis=Databis[,-30]
+Databis=Databis[,-1]
+step.model.forecast <- predict(step.model, newdata=Databis)
+source("function/rmse.R")
+rmse(y=train$Appliances[level:13964], ychap=step.model.forecast)
+
+
+plot(train$Appliances[level:13964], type='l',ylab='original',xlab='temps')
+lines(step.model$fitted.values, col='red')
+
+step.model$coefficients
+
+
+rmsef=rep(0,40)
+for (i in 0:39)
+{
+  step.modelf=stepAIC(fitstart, direction = "forward",scope=formula(fitall),trace=FALSE)
+  step.model.forecastf=predict(step.modelf, newdata=Databis)
+  rmsef[i+1]=rmse(y=train$Appliances[level:13964],ychap=step.model.forecastf)
+}
+c=seq(0,40)
+plot(c,rmsef)
