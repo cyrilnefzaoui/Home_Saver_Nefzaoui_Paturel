@@ -1,0 +1,8 @@
+rmse=function(y,ychap)
+{
+  n=length(y)
+  diff=y-ychap
+  carre=(t(diff)%*%diff)[1,1]
+  rmse=sqrt(carre/n)
+  return(rmse)
+}
