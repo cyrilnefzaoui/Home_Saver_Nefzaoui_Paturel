@@ -1,0 +1,44 @@
+setwd("C:/Users/patur/OneDrive/Bureau/ENSTA/ENSTA Cours/Projet R/TP")
+
+rm(list = objects())#comme clear all, met a jour des var
+library(xts)
+
+train=read.csv("Data/train.csv",header=TRUE) #on charge le tableau d'entrainement train
+test=read.csv("Data/test.csv",header=TRUE) #on charge le tableu de résultat test
+
+Date_train=as.POSIXct(strptime(train$date,tz="GMT","%Y-%m-%d %H:%M:%S")) #conversion de la date de train
+train.xts=xts(train$Appliances,order.by = Date_train) #conversion de la liste train en série temporelle
+
+end=end(train$Posan)[1]
+set=which(test$Posan==train$Posan[end])
+l=end(set)[1]
+first=set[l]
+last=end(test$date)[1]
+
+Date_test=as.POSIXct(strptime(test$date,tz="GMT","%Y-%m-%d %H:%M:%S")) #conversion de la date à prévoir de test 
+num=last-first
+c=rep(200,num)
+test.xts=xts(c,order.by = Date_test[(first+1):last]) #conversion de la liste à prévoir du test en série temporelle
+
+res.xts=cbind(train.xts,test.xts)
+plot(res.xts) #en noir ce que l'on connait en rouge ce que l'on doit prévoir
+
+###Nettoyage de la base de donnÃ©es###
+sequence=which(is.na(train$RH_6))
+for (i in sequence)
+{train$RH_6[i]=10}
+
+#summary(train$RH_6)
+which(is.na(train$Visibility))
+
+sequence2=which(is.na(train$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(train$Visibility[i+k])==is.na(train$Visibility[i]))
+  {k=k+1}
+  while (is.na(train$Visibility[i-j])==is.na(train$Visibility[i]))
+  {j=j+1}
+  train$Visibility[i]=0.5*(train$Visibility[i-j]+train$Visibility[i+k])
+}
