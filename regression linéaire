@@ -70,3 +70,59 @@ for (i in 0:39)
 }
 c=seq(0,40)
 plot(c,rmsef)
+
+#######
+
+
+num=length(test$date)
+c=rep(0,num)
+Date_test=as.POSIXct(strptime(test$date,tz="GMT","%Y-%m-%d %H:%M:%S")) #conversion de la date de train
+test.xts=xts(c,order.by = Date_test) #conversion de la liste train en série temporelle
+
+c.xts=rbind.xts(train.xts,test.xts)
+TF=(as.numeric(c.xts)==0)
+Appliances=test$rv1
+
+####
+
+p=0
+for (i in 1:(end+first))
+{
+  if (TF[i]==TRUE)
+  {
+    k=0
+    j=0
+    while (TF[i+k] == TRUE)
+    {k=k+1}
+    while (TF[i-j] == TRUE)
+    {j=j+1}
+    p=p+1
+    c.xts[i]=(k/(k+j))*as.numeric(c.xts[i-j])+(j/(j+k))*as.numeric(c.xts[i+k])
+    Appliances[p]=as.numeric(c.xts[i])
+  }
+  i=i+1
+}
+####
+
+library(MASS)
+level=10000
+Data=train[,-1]
+Data=Data[,-33]
+Data=Data[,-30]
+Data=Data[,-30]
+Data=Data[,-30]
+
+fitstart=lm(Appliances~1,data=Data)
+fitall=lm(Appliances~.,data=Data)
+
+step.model <- stepAIC(fitstart,scope=formula(fitall), direction = "forward",data=Data,steps=12,trace=F)
+
+
+step.model.forecast <- predict(step.model, newdata=test[(first+1):5771,])
+Appliances[(first+1):5771]=step.model.forecast
+
+Appliances.xts=xts(Appliances,order.by=Date_test)
+plot(Appliances.xts,type='s')
+submit <- read.csv(file="Data/sample_submission.csv", sep=",", dec=".")
+submit$Appliances <- Appliances
+write.table(submit, file="Data/submission_Appliances.csv", quote=F, sep=",", dec='.',row.names = F)
