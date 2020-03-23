@@ -14,10 +14,9 @@ prediction_xgboost_simple_struct=read.csv(file="submission_simple_xgboost.csv", 
 prediction_xgboost_simple=prediction_xgboost_simple_struct$Appliances
 
 vrai_test=test[4655:5771]
-rm(test)
-rm(train)
 
-date_train=as.POSIXct(strptime(test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
+
+date_test=as.POSIXct(strptime(test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
 library(dplyr)
 
 yes_is_in_test=rep(1, times = length(test$date))
@@ -71,7 +70,7 @@ total_purified$Day_of_week=as.numeric(total_purified$Day_of_week)
 
 ######train_complete)
 
-##############completion par foret aléatoire
+##############completion par foret alÃ©atoire
 
 library(doParallel)
 library(missForest)
@@ -128,7 +127,7 @@ set.seed(0)
 xgbGrid_heavy <- expand.grid(nrounds = c(500,1000),  
                              max_depth =18 ,
                              colsample_bytree = seq(0.5, 0.9, length.out = 5),
-                             ## valeurs par défaut : 
+                             ## valeurs par dÃ©faut : 
                              eta = 0.1,
                              gamma=0,
                              
