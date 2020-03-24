@@ -14,25 +14,39 @@ prediction_xgboost_simple_struct=read.csv(file="submission_simple_xgboost.csv", 
 prediction_xgboost_simple=prediction_xgboost_simple_struct$Appliances
 length(prediction_xgboost_simple)
 
-vrai_test=test[4655:5771]
 past_predictions=prediction_xgboost_simple[4655:5771]
 predictions_sures=prediction_xgboost_simple[1:4654]
 
 date_test=as.POSIXct(strptime(test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
 date_vrai_test=date_test[4655:5771]
-library(dplyr)
 
+
+
+library(dplyr)
+test=(test %>% select(-Id))
 yes_is_in_test=rep(1, times = length(test$date))
 test$is_in_test=yes_is_in_test
 not_in_test=rep(0, times = length(train$date))
 train$is_in_test=not_in_test
-
+test$Appliances=rep(NA, times = length(test$date))
 rmse = function(ychap, y){
   sqrt(mean((ychap - y)^2))
 }
 
 
 
+ts_Appliances=ts(train$Appliances)
+xts_Appliances=xts(ts_Appliances,order.by = date_train)
+date_train=Date = as.POSIXct(strptime(train$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
+
+date_test=Date = as.POSIXct(strptime(test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
+date_test_futur=date_test[4655:5771]
+date_vrai_test=as.POSIXct(strptime(vrai_test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
+date_test_imputation_factors=total_sorted$date[which(total_sorted$is_in_test==1)]
+date_test_imputation=as.POSIXct(strptime(date_test_imputation_f,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
+date_test_futur=date_test[4655:5771]
+
+rm(date_test_imputation)
 
 library(mltools)
 library(data.table)
@@ -53,8 +67,8 @@ test_purified=(vrai_test %>% select(-c(Id,is_in_test,rv1,rv2,date,DayType,Instan
                                        BE_load_forecast_entsoe_transparency,BE_wind_onshore_capacity,BE_wind_onshore_capacity,BE_wind_onshore_generation_actual,BE_wind_onshore_profile,WeekStatus)))
 test_purified$Day_of_week=as.numeric(test_purified$Day_of_week)
 
-
-
+rm(test_purified)
+length(which(is.na(total$Appliances)))
 
 
 
@@ -63,66 +77,104 @@ library(dplyr)
 total_sorted<-arrange(total ,as.Date(total$date))
 date_total=as.POSIXct(strptime(total$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
 Appliances_reference=total_sorted$Appliances
-total_purified=(total_sorted %>% select(-c(Appliances,Id,is_in_test,rv1,rv2,date,DayType,Instant,lights,Visibility,InstantF,Posan,Month,Heure,BE_load_actual_entsoe_transparency,
+
+#####si on veut entrainer un modele avec peu de variables mais toutes tres plausibles (parcimonie)
+total_purified=(total_sorted %>% select(-c(,rv1,rv2,date,DayType,Instant,lights,Visibility,InstantF,Posan,Month,Heure,BE_load_actual_entsoe_transparency,
                                            BE_load_forecast_entsoe_transparency,BE_wind_onshore_capacity,BE_wind_onshore_capacity,BE_wind_onshore_generation_actual,BE_wind_onshore_profile,WeekStatus)))
 
 
 
+########## si on veut entrainer un modèle lourd
 
-total_purified$Day_of_week=as.numeric(total_purified$Day_of_week)
+
+test_heavy=(vrai_test  %>% select(-c(Id,rv1,rv2)))
+test_heavy_numeric=(lapply(test_heavy, function(x) as.numeric(x)))
+test_heavy_numeric_df=setDT(test_heavy_numeric, keep.rownames=FALSE, key=NULL, check.names=FALSE)
 
 ######train_complete)
 
-##############completion par foret aléatoire
 
+###########Si on veut faire un train classique
+
+true_train=(train%>% select(-c(Appliances,rv1,rv2)))
+true_train_numeric=(lapply(true_train, function(x) as.numeric(x)))
+true_train_numeric_df=setDT(true_train_numeric, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+
+
+
+
+true_test=(test%>% select(-c(is_in_test,rv1,rv2,Appliances)))
+true_test_numeric=(lapply(true_test, function(x) as.numeric(x)))
+true_test_numeric_df=setDT(true_test_numeric, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+
+test_prediction=true_test_numeric_df[4655:5771]
+rm(test_prediction)
+
+total_heavy=(total_sorted %>% select(-c(rv1,rv2,is_in_test)))
+total_heavy_matrix=data.matrix(total_heavy, rownames.force = NA)
+total_heavy_numeric= (lapply(total_heavy, function(x) as.numeric(x)))
+total_heavy_numeric_df=setDT(total_heavy_numeric, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+
+######train_complete)
+length(which(is.na(total_heavy_numeric_df$Appliances)))
+
+
+##############completion par foret aléatoire
+  which(is.na(total_sorted$Appliances))
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+####################Si on veut imputer un jeu de données qui comporte DEJA les APPLIANCES à imputer
 library(doParallel)
 library(missForest)
 registerDoParallel(cores=4)
 
-new_total=missForest(total_purified, maxiter = 1000, ntree = 1000, variablewise = FALSE,
+
+total_imputed=missForest(total_heavy_numeric_df, maxiter = 100 ,ntree = 100, variablewise = FALSE,
                      decreasing = FALSE, verbose = TRUE,
                      
-                     mtry = floor(sqrt(ncol(total_purified))),
+                     mtry = floor(sqrt(ncol(total_heavy_numeric_df))),
                      replace = TRUE,
                      classwt = NULL, cutoff = NULL, strata = NULL,
                      sampsize = NULL, nodesize = NULL, maxnodes = NULL,
                      xtrue = NA, parallelize = 'forests')
 
 
-train_completed_augmented=new_total$ximp
-train_completed_augmented$Day_of_week=as.numeric(train_completed_augmented$Day_of_week)
-X_train=(train_completed_augmented  %>% select(-Appliances))
-try=train_completed_augmented
-x_train_xgb=xgb.DMatrix(as.matrix(try %>% select(-Appliances)))
-try_x=(as.matrix(try %>% select(-Appliances)))
-x_train_xgb=xgb.DMatrix(try_x)
-rm(x_train_xgb)
-try_x
-summary(train_o)
-train_o$Appliances[1]
-apply(train_o, 2, function(x) any(is.na(x)))
-complete.cases(train_o)
-#####################"
-rmse(Appliances_reference,train_completed$Appliances)
-rm(total)
-rm(total_purified)
-rm(total_sorted)
-rm(new_total)
-rm(train)
-rm(test)
-rm(test_sp)
-rm(test_dt)
-rm(try)
-rm(train_completed)
-try$NSM=as.numeric(try$NSM)
-rm(try)
-rm(X)
-rm(X_train)
-rm(try_x)
+train_complete_heavy=total_imputed$ximp
+Appliances_total=train_complete_heavy$Appliances
+
+Appliances_imputed_in_test=train_complete_heavy$Appliances[which(total_sorted$is_in_test==1)]
+train_complete_heavy=(train_complete_heavy %>% select(-is_in_test))
 
 
+length(which(is.na(train_complete_heavy$Appliances)))
+plot(train_complete_heavy$Appliances)
+plot(Appliances_total)
+plot(Appliances_imputed_in_test)
+rm(train_complete_heavy)
+
+####################Si on veut imputer un jeu de données qui ne comporte PAS les appliances à completer
 
 
+true_train_imputed=missForest(true_train_numeric_df, maxiter = 1000 ,ntree = 100, variablewise = FALSE,
+                         decreasing = FALSE, verbose = TRUE,
+                         
+                         mtry = floor(sqrt(ncol(true_train_numeric_df))),
+                         replace = TRUE,
+                         classwt = NULL, cutoff = NULL, strata = NULL,
+                         sampsize = NULL, nodesize = NULL, maxnodes = NULL,
+                         xtrue = NA, parallelize = 'forests')
+
+
+true_train_complete=true_train_imputed$ximp
 
 
 
@@ -133,78 +185,129 @@ library(xgboost)
 
 
 
-xgb_trcontrol = trainControl(method = "cv", number = 20, allowParallel = TRUE, verboseIter = TRUE, returnData = FALSE)
-xgbGrid <- expand.grid(nrounds = 1000,  max_depth = 50,colsample_bytree = seq(0.5, 0.9, length.out = 5), eta = 0.1,gamma=0,min_child_weight = 1,subsample = 0.5)
+xgb_trcontrol = trainControl(method = "oob", number = 100, allowParallel = TRUE, verboseIter = TRUE, returnData = FALSE)
+
+xgbGrid <- expand.grid(nrounds = 1000,  max_depth =6,colsample_bytree = c(0.1, 1, length.out = 10), eta = 0.01,gamma=0,min_child_weight = 1,subsample = 0.5)
 set.seed(0)
 
 
 
-xgbGrid_heavy <- expand.grid(nrounds = c(500,1000),  
-                             max_depth =50 ,
+xgbGrid_heavy <- expand.grid(nrounds = c(500,1000,1500,2000),  
+                             max_depth =c(1:16,length.out = 15), 
                              colsample_bytree = seq(0.5, 0.9, length.out = 5),
                              ## valeurs par défaut : 
-                             eta = 0.1,
+                             eta = 0.01,
                              gamma=0,
                              
                              min_child_weight = 1,
-                             subsample = 0.95)
-
-X_train_xgb=xgb.DMatrix(as.matrix(train_completed_augmented), label=Appliances_reference)
+                             subsample = 1)
 
 
 
+total_purified=(train_complete_heavy %>% select(-c(Appliances,date,DayType,Instant,lights,Visibility,InstantF,Posan,Month,Heure,BE_load_actual_entsoe_transparency,
+                                                     BE_load_forecast_entsoe_transparency,BE_wind_onshore_capacity,BE_wind_onshore_capacity,BE_wind_onshore_generation_actual,BE_wind_onshore_profile,WeekStatus)))
 
-xgb_model = xgb.train(params=list(booster="gbtree"),data=X_train_xgb , trControl = xgb_trcontrol, tuneGrid = xgbGrid_heavy,  method = "xgbTree",nrounds=10000,verbose=2,print_every_n = 1)
+
+train_complete_heavy_without_Appliances=(train_complete_heavy %>% select(-c(Appliances)))
+X_train_xgb=xgb.DMatrix(as.matrix(train_complete_heavy_without_Appliances ), label=Appliances_total)
+#X_train_xgb_purified=xgb.DMatrix(as.matrix( total_purified), label=Appliances_total)
+
+X_true_train_xgb=xgb.DMatrix(as.matrix(true_train_complete), label=train$Appliances)
 
 
-xgb_model$best_tune
+
+xgb_model = xgb.train(params=list(booster="gbtree",eval_metric=rmse),data=X_train_xgb_purified , trControl = xgb_trcontrol, tuneGrid = xgbGrid_heavy,  method = "xgbTree",nrounds=10000,verbose=2,print_every_n = 1)
+rm(xgb_model)
 #########################prediction
 
 
 
-new_test=missForest(test_purified, maxiter = 1000, ntree = 2000, variablewise = FALSE,
+  test_imputed_heavy=missForest(test_heavy_numeric_df, maxiter = 1000, ntree = 100, variablewise = FALSE,
                     decreasing = FALSE, verbose = TRUE,
                     
-                    mtry = floor(sqrt(ncol(test_purified))),
+                    mtry = floor(sqrt(ncol(test_heavy_numeric_df))),
                     replace = TRUE,
                     classwt = NULL, cutoff = NULL, strata = NULL,
                     sampsize = NULL, nodesize = NULL, maxnodes = NULL,
                     xtrue = NA, parallelize = 'forests')
 
+
+  
+  
+true_test_imputed=missForest(true_test_numeric_df, maxiter = 1000, ntree = 100, variablewise = FALSE,
+                                decreasing = FALSE, verbose = TRUE,
+                                
+                                mtry = floor(sqrt(ncol(true_test_numeric_df))),
+                                replace = TRUE,
+                                classwt = NULL, cutoff = NULL, strata = NULL,
+                                sampsize = NULL, nodesize = NULL, maxnodes = NULL,
+                                xtrue = NA, parallelize = 'forests')
+
+
 test_to_predict=new_test$ximp
-X_test = xgb.DMatrix(as.matrix(test_to_predict))
-test_to_predict$Day_of_week=as.numeric(test_to_predict$Day_of_week)
+true_test_to_predict=true_test_imputed$ximp
+test_prediction_only=true_test_to_predict[4655:5771]
+  
+
+
+
+
+
+"
 
 complete.cases(test_to_predict)
 
-predictions=predict(xgb_model,newdata=X_test)
-ts_predictions=ts(predictions)
-ts_Appliances=ts(Appliances_reference)
-xts_Appliances=xts(ts_Appliances,order.by = date_total)
-date_test=Date = as.POSIXct(strptime(test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
-date_vrai_test=as.POSIXct(strptime(vrai_test$date,"%Y-%m-%d  %H:%M:%S" ,tz="GMT"))
-xts_predictions=xts(ts_predictions,order.by=date_vrai_test, color: "red")
+#predictions=predict(xgb_model,newdata=X_test)
+true_predictions=predict(xgb_model,newdata=X_true_test)
+plot(predictions_only)
 
 
-graphes=cbind(xts_predictions,xts_Appliances)
-length(predictions)
+xts_prediction_futur=xts(ts_prediction_futur,order.by=date_test_futur, color: "red")
+ts_Appliances_imputed_in_test=ts(Appliances_imputed_in_test)
+
+xts_Appliances_imputed_in_test=xts(ts_Appliances_imputed_in_test,order.by=date_test_imputation)
+ts_Appliances_imputed_in_test=ts(Appliances_imputed_in_test)
+
+
+
+"
+
+#X_test = xgb.DMatrix(as.matrix(test_to_predict))
+#X_true_test=xgb.DMatrix(as.matrix(true_test_to_predict))
+test_purified=(test_prediction_only %>%select(-c(date,DayType,Instant,lights,Visibility,InstantF,Posan,Month,Heure,BE_load_actual_entsoe_transparency,
+                        BE_load_forecast_entsoe_transparency,BE_wind_onshore_capacity,BE_wind_onshore_capacity,BE_wind_onshore_generation_actual,BE_wind_onshore_profile,WeekStatus)))
+
+X_test_prediction=xgb.DMatrix(as.matrix(test_prediction_only))
+X_test_purified=xgb.DMatrix(as.matrix(test_purified))
+
+
+#########
+
+prediction_futur=predict(xgb_model,newdata=X_test_purified)
+ts_prediction_futur=ts(prediction_futur)
+xts_prediction_futur=xts(ts_prediction_futur,order.by=date_test_futur)
+
+
+graphes=cbind(xts_prediction_futur,xts_Appliances,xts_Appliances_imputed_in_test)
 
 dygraph(graphes)
 
 
 
+dygraph(xts_prediction_futur)
+d
+rmse(true_predictions,prediction_xgboost_simple)
 
-rmse(predictions,past_predictions)
 
-
-total_prediction=c(predictions_sures,predictions)
+total_prediction=c(Appliances_imputed_in_test,prediction_futur)
+plot(total_prediction)
 plot(total_prediction)
 length(total_prediction)
 
 submit <- read.csv(file="sample_submission.csv", sep=",", dec=".")
 submit$Appliances <- total_prediction
 
-write.table(submit, file="submission_new_methode.csv", quote=F, sep=",", dec='.',row.names = F)
+write.table(submit, file="submission_deja_impute_overfitte.csv", quote=F, sep=",", dec='.',row.names = F)
 plot(total_prediction)
 
 
