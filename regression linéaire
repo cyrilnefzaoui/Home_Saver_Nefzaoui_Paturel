@@ -1,17 +1,19 @@
-#pour lire le fichier, on selectionne les lignes de codes que l'on veut run et on fait ctrl + entree
-#import
-rm()#comme clear all, met a jour des var
-train<-read.csv("Data/train.csv",header=TRUE)
-sample_submission<-read.csv("Data/sample_submission.csv",header=TRUE)
-head(sample_submission)
+setwd("C:/Users/patur/OneDrive/Bureau/ENSTA/ENSTA Cours/Projet R/TP")
 
-###Nettoyage de la base de donnÃ©es###
+library(mltools)
+library(data.table)
+
+rm(list = objects())#comme clear all, met a jour des var
+
+train=read.csv("Data/train.csv",header=TRUE) #on charge le tableau d'entrainement train
+test=read.csv("Data/test.csv",header=TRUE) #on charge le tableu de résultat test
+
+#######Nettoyage
+
 sequence=which(is.na(train$RH_6))
 for (i in sequence)
 {train$RH_6[i]=10}
-
-#summary(train$RH_6)
-which(is.na(train$Visibility))
+which(is.na(train$RH_6))
 
 sequence2=which(is.na(train$Visibility))
 for (i in sequence2)
@@ -24,87 +26,69 @@ for (i in sequence2)
   {j=j+1}
   train$Visibility[i]=0.5*(train$Visibility[i-j]+train$Visibility[i+k])
 }
- 
-###Regression
 
-library(MASS)
-level=10000
-Data=train[1:level,-1]
-Data=Data[,-33]
-Data=Data[,-30]
-Data=Data[,-30]
-Data=Data[,-30]
-fitstart=lm(Appliances~1,data=Data)
-fitall=lm(Appliances~.,data=Data)
-summary(fitstop)
+sequence=which(is.na(test$RH_6))
+for (i in sequence)
+{test$RH_6[i]=10}
 
-step.model <- stepAIC(fitall, direction = "backward",data=train[1:level,])
+which(is.na(test$RH_6))
 
-summary(step.model)
-names(step.model)
-step.model$anova
-
-Databis=train[level:13964,-1]
-Databis=Databis[,-33]
-Databis=Databis[,-30]
-Databis=Databis[,-30]
-Databis=Databis[,-30]
-Databis=Databis[,-1]
-step.model.forecast <- predict(step.model, newdata=Databis)
-source("function/rmse.R")
-rmse(y=train$Appliances[level:13964], ychap=step.model.forecast)
-
-
-plot(train$Appliances[level:13964], type='l',ylab='original',xlab='temps')
-lines(step.model$fitted.values, col='red')
-
-step.model$coefficients
-
-
-rmsef=rep(0,40)
-for (i in 0:39)
+sequence2=which(is.na(test$Visibility))
+for (i in sequence2)
 {
-  step.modelf=stepAIC(fitstart, direction = "forward",scope=formula(fitall),trace=FALSE)
-  step.model.forecastf=predict(step.modelf, newdata=Databis)
-  rmsef[i+1]=rmse(y=train$Appliances[level:13964],ychap=step.model.forecastf)
+  k=0
+  j=0
+  while (is.na(test$Visibility[i+k])==is.na(test$Visibility[i]))
+  {k=k+1}
+  while (is.na(test$Visibility[i-j])==is.na(test$Visibility[i]))
+  {j=j+1}
+  test$Visibility[i]=0.5*(test$Visibility[i-j]+test$Visibility[i+k])
 }
-c=seq(0,40)
-plot(c,rmsef)
+which(is.na(test$Visibility))
 
-#######
+#######booleans
 
+yes_is_in_test=rep(1, times = length(test$date))
+test$is_in_test=yes_is_in_test
+not_in_test=rep(0, times = length(train$date))
+train$is_in_test=not_in_test
 
-num=length(test$date)
-c=rep(0,num)
-Date_test=as.POSIXct(strptime(test$date,tz="GMT","%Y-%m-%d %H:%M:%S")) #conversion de la date de train
-test.xts=xts(c,order.by = Date_test) #conversion de la liste train en série temporelle
+train_dt=setDT(train, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+test_dt=setDT(test, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+test_sp=test_dt[1:4654]
+total= merge(train_dt,test_sp,all=TRUE)
+length(which(is.na(total$Appliances)))
+length(which(is.na(total$lights)))
+length(which(is.na(total$RH_6)))
+length(which(is.na(total$Visibility)))
 
-c.xts=rbind.xts(train.xts,test.xts)
-TF=(as.numeric(c.xts)==0)
-Appliances=test$rv1
+total$date <- as.Date(as.character(total$date), format="%Y-%m-%d %H:%M:%S",tz="GMT")
+total <- total[order(total$date,total$NSM, decreasing=FALSE),]
 
-####
-
-p=0
-for (i in 1:(end+first))
+n=length(total$NSM)
+res=test$rv1
+head(res)
+p=1
+sequence3=which(is.na(total$Appliances))
+for (i in sequence3)
 {
-  if (TF[i]==TRUE)
-  {
-    k=0
-    j=0
-    while (TF[i+k] == TRUE)
-    {k=k+1}
-    while (TF[i-j] == TRUE)
-    {j=j+1}
-    p=p+1
-    c.xts[i]=(k/(k+j))*as.numeric(c.xts[i-j])+(j/(j+k))*as.numeric(c.xts[i+k])
-    Appliances[p]=as.numeric(c.xts[i])
-  }
-  i=i+1
+  k=1
+  j=1
+  while (is.na(total$Appliances[i+k])==is.na(total$Appliances[i]))
+  {k=k+1}
+  while (is.na(total$Appliances[i-j])==is.na(total$Appliances[i]))
+  {j=j+1}
+  total$Appliances[i]=(k/(k+j))*(total$Appliances[i-j])+(j/(j+k))*(total$Appliances[i+k])
+  res[p]=(total$Appliances[i])
+  p=p+1
 }
-####
 
+which(is.na(total$Appliances))
+
+### reg lin
 library(MASS)
+library(xts)
+library(dygraphs)
 level=10000
 Data=train[,-1]
 Data=Data[,-33]
@@ -118,11 +102,43 @@ fitall=lm(Appliances~.,data=Data)
 step.model <- stepAIC(fitstart,scope=formula(fitall), direction = "forward",data=Data,steps=12,trace=F)
 
 
-step.model.forecast <- predict(step.model, newdata=test[(first+1):5771,])
-Appliances[(first+1):5771]=step.model.forecast
+step.model.forecast <- predict(step.model, newdata=test[4655:5771,])
+res[4655:5771]=step.model.forecast
 
-Appliances.xts=xts(Appliances,order.by=Date_test)
-plot(Appliances.xts,type='s')
-submit <- read.csv(file="Data/sample_submission.csv", sep=",", dec=".")
-submit$Appliances <- Appliances
-write.table(submit, file="Data/submission_Appliances.csv", quote=F, sep=",", dec='.',row.names = F)
+data=total[15000:18000,]
+ind=which(0<data$NSM & data$NSM<3600) 
+ind2=which(0<test[4655:5771,]$NSM & test[4655:5771,]$NSM<3600)          
+data$Appliances[ind]
+res[4655:5771][ind2]
+pic1=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic1
+
+ind=which(3600<=data$NSM & data$NSM<14000) 
+ind2=which(3600<=test$NSM[4655:5771] & test$NSM[4655:5771]<14000)          
+data$Appliances[ind]
+res[4655:5771][ind2]
+pic2=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic2
+
+ind=which(14000<=data$NSM & data$NSM<24600) 
+ind2=which(14000<=test$NSM[4655:5771] & test$NSM[4655:5771]<24600)          
+data$Appliances[ind]
+res[4655:5771][ind2]
+pic3=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic3
+
+ind=which(data$T1>25.6)  
+ind2=which(test$NSM[4655:5771]>25.55)  
+data$Appliances[ind]
+pic4=mean(data$Appliances[ind])
+res[4655:5771][ind2][5]=pic4
+
+ind=which(data$RH_5>70 & data$T5>25.1)          
+ind2=which(test$RH_5[4655:5771]>70 & test$T5[4655:5771]>25)          
+data$Appliances[ind]
+pic5=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic5
+
+date_test=as.POSIXct(strptime(test$date,tz="GMT","%Y-%m-%d %H:%M:%S")) #conversion de la date à prévoir de test 
+res.xts=xts(res,order.by=date_test)
+dygraph(res.xts)
