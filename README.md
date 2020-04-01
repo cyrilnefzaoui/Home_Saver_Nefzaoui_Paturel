@@ -1,15 +1,17 @@
 # SIM202
 Monsieur vous trouverez dans ce github nos codes utilisant les modèles suivant: 
 
-Modèle linéaire / Linéaire / Score Kaggle  67.9
+Modèle / Document / Score
 
-Modèle linéaire avec classification / / Score Kaggle 67.8  
+Modèle linéaire / regression linéaire et classification / Score Kaggle  67.9
+
+Modèle linéaire avec classification /	regression linéaire et classification / Score Kaggle 67.8  
 
 Modèle GAM / Gam et mixte Gam et linéaire / Score Kaggle 70 
 
 Modèle GAM Mixte avec linéaire / Gam et mixte Gam et linéaire / Score Kaggle 69
 
-Modèle Imputation par moyenne pondérée / 
+Modèle Imputation par moyenne pondérée / regression linéaire et classification
 
 Modèle Adaboost
 
