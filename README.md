@@ -5,7 +5,7 @@ Modèle / Document / Score
 
 Modèle linéaire / regression linéaire et classification / Score Kaggle  67.9
 
-Modèle linéaire avec classification /	regression linéaire et classification / Score Kaggle 67.8  
+Modèle linéaire avec classification /	regression linéaire et classification / Score Kaggle 67.9
 
 Modèle GAM / Gam et mixte Gam et linéaire / Score Kaggle 70 
 
