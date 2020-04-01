@@ -1,3 +1,92 @@
+setwd("C:/Users/patur/OneDrive/Bureau/ENSTA/ENSTA Cours/Projet R/TP")
+
+library(mltools)
+library(data.table)
+
+rm(list = objects())#comme clear all, met a jour des var
+
+train=read.csv("Data/train.csv",header=TRUE) #on charge le tableau d'entrainement train
+test=read.csv("Data/test.csv",header=TRUE) #on charge le tableu de résultat test
+
+#######Nettoyage
+
+sequence=which(is.na(train$RH_6))
+for (i in sequence)
+{train$RH_6[i]=10}
+which(is.na(train$RH_6))
+
+sequence2=which(is.na(train$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(train$Visibility[i+k])==is.na(train$Visibility[i]))
+  {k=k+1}
+  while (is.na(train$Visibility[i-j])==is.na(train$Visibility[i]))
+  {j=j+1}
+  train$Visibility[i]=0.5*(train$Visibility[i-j]+train$Visibility[i+k])
+}
+
+sequence=which(is.na(test$RH_6))
+for (i in sequence)
+{test$RH_6[i]=10}
+
+which(is.na(test$RH_6))
+
+sequence2=which(is.na(test$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(test$Visibility[i+k])==is.na(test$Visibility[i]))
+  {k=k+1}
+  while (is.na(test$Visibility[i-j])==is.na(test$Visibility[i]))
+  {j=j+1}
+  test$Visibility[i]=0.5*(test$Visibility[i-j]+test$Visibility[i+k])
+}
+which(is.na(test$Visibility))
+
+#######booleans
+
+yes_is_in_test=rep(1, times = length(test$date))
+test$is_in_test=yes_is_in_test
+not_in_test=rep(0, times = length(train$date))
+train$is_in_test=not_in_test
+
+train_dt=setDT(train, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+test_dt=setDT(test, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+test_sp=test_dt[1:4654]
+total= merge(train_dt,test_sp,all=TRUE)
+length(which(is.na(total$Appliances)))
+length(which(is.na(total$lights)))
+length(which(is.na(total$RH_6)))
+length(which(is.na(total$Visibility)))
+
+total$date <- as.Date(as.character(total$date), format="%Y-%m-%d %H:%M:%S",tz="GMT")
+total <- total[order(total$date,total$NSM, decreasing=FALSE),]
+
+n=length(total$NSM)
+res=test$rv1
+head(res)
+p=1
+sequence3=which(is.na(total$Appliances))
+for (i in sequence3)
+{
+  k=1
+  j=1
+  while (is.na(total$Appliances[i+k])==is.na(total$Appliances[i]))
+  {k=k+1}
+  while (is.na(total$Appliances[i-j])==is.na(total$Appliances[i]))
+  {j=j+1}
+  total$Appliances[i]=(k/(k+j))*(total$Appliances[i-j])+(j/(j+k))*(total$Appliances[i+k])
+  res[p]=(total$Appliances[i])
+  p=p+1
+}
+
+which(is.na(total$Appliances))
+
+### Debut GAM
+
 library(corrplot)
 library(ellipse)
 library(qgraph)
@@ -16,6 +105,9 @@ predict_gam=predict(step.object,train[10000:13964,])
 # rmse(train$Appliances[10000:13964],predict_gam) de 84
 plot(train$Appliances[10000:13964],type='l')
 lines(predict_gam,col='red')
+
+
+### Mixte GAM et regression linéaire
 
 #On nettoye les données pour la régression linéaire
 Data=train[,-1]
