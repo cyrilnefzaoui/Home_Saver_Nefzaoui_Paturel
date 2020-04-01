@@ -15,7 +15,7 @@ Modèle Imputation par moyenne pondérée / regression linéaire et classificati
 
 Modèle Adaboost / Adaboost / Score Kaggle 71
 
-Modèle Randomforest 
+Modèle Randomforest / Random Forest / Score Kaggle 73.9
 
 Modèle GBM 
 
