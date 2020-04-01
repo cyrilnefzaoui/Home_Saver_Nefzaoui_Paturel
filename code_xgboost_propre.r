@@ -84,7 +84,7 @@ total_purified=(total_sorted %>% select(-c(,rv1,rv2,date,DayType,Instant,lights,
 
 
 
-########## si on veut entrainer un modèle lourd
+########## si on veut entrainer un modÃ¨le lourd
 
 
 test_heavy=(vrai_test  %>% select(-c(Id,rv1,rv2)))
@@ -119,7 +119,7 @@ total_heavy_numeric_df=setDT(total_heavy_numeric, keep.rownames=FALSE, key=NULL,
 length(which(is.na(total_heavy_numeric_df$Appliances)))
 
 
-##############completion par foret aléatoire
+##############completion par foret alÃ©atoire
   which(is.na(total_sorted$Appliances))
   
   
@@ -132,7 +132,7 @@ length(which(is.na(total_heavy_numeric_df$Appliances)))
   
   
 
-####################Si on veut imputer un jeu de données qui comporte DEJA les APPLIANCES à imputer
+####################Si on veut imputer un jeu de donnÃ©es qui comporte DEJA les APPLIANCES Ã  imputer
 library(doParallel)
 library(missForest)
 registerDoParallel(cores=4)
@@ -161,7 +161,7 @@ plot(Appliances_total)
 plot(Appliances_imputed_in_test)
 rm(train_complete_heavy)
 
-####################Si on veut imputer un jeu de données qui ne comporte PAS les appliances à completer
+####################Si on veut imputer un jeu de donnÃ©es qui ne comporte PAS les appliances Ã  completer
 
 
 true_train_imputed=missForest(true_train_numeric_df, maxiter = 1000 ,ntree = 100, variablewise = FALSE,
@@ -195,7 +195,7 @@ set.seed(0)
 xgbGrid_heavy <- expand.grid(nrounds = c(500,1000,1500,2000),  
                              max_depth =c(1:16,length.out = 15), 
                              colsample_bytree = seq(0.5, 0.9, length.out = 5),
-                             ## valeurs par défaut : 
+                             ## valeurs par dÃ©faut : 
                              eta = 0.01,
                              gamma=0,
                              
