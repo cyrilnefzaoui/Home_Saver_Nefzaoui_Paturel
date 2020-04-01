@@ -17,9 +17,9 @@ Modèle Adaboost / Adaboost / Score Kaggle 71
 
 Modèle Randomforest / Random Forest / Score Kaggle 73.9
 
-Modèle GBM 
+Modèle GBM / code_gbm / Score Kaggle 73
 
-Modèle XGBoost
+Modèle XGBoost /  code_minimal_xgboost.r / Score Kaggle 72
 
-Modèle Completion partielle 
+Modèle Completion partielle /	code_minimal_xgboost.r 
 
