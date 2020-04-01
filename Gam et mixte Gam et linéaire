@@ -1,0 +1,44 @@
+library(corrplot)
+library(ellipse)
+library(qgraph)
+corr=data.frame(Appliances=train$Appliances,NSM=train$NSM,lights=train$lights,T1=train$T1,RH_1=train$RH_1,RH_5=train$RH_5,T5=train$T5)
+corr=as.matrix(corr)
+qgraph(cor(corr))
+
+### Step.Gam ###
+library(gam)
+
+Gam.object=gam(step.modelf,data=train)
+step.object <-step.Gam(Gam.object,trace=F,direction='forward',scope=list("lights"=~1+lights+s(lights),"RH_1"=~1+RH_1+s(RH_1),"RH_2"=~1+RH_2+s(RH_2),"RH_3"=~1+s(RH_3),"RH_4"=~1+s(RH_4),"RH_5"=~1+s(RH_5),"RH_6"=~1+s(RH_6),"RH_7"=~1+s(RH_7),"RH_8"=~1+s(RH_8),"RH_9"=~1+s(RH_9),"RH_out"=~1+RH_out+s(RH_out),"Visibility"=~1+Visibility+s(Visibility),"Posan"=~1+Posan+s(Posan),"NSM"=~1+NSM+s(NSM),"T1"=~1+T1+s(T1),"T2"=~1+T2+s(T2),"T6"=~1+T6+s(T6),"T7"=~1+T7+s(T7),"T_out"=~1+T_out+s(T_out),"BE_load_actual_entsoe_transparency"=~1+BE_load_actual_entsoe_transparency+s(BE_load_actual_entsoe_transparency),"BE_load_forecast_entsoe_transparency"=~1+BE_load_forecast_entsoe_transparency+s(BE_load_forecast_entsoe_transparency)))
+
+source("function/rmse.R")
+predict_gam=predict(step.object,train[10000:13964,])
+# rmse(train$Appliances[10000:13964],predict_gam) de 84
+plot(train$Appliances[10000:13964],type='l')
+lines(predict_gam,col='red')
+
+#On nettoye les données pour la régression linéaire
+Data=train[,-1]
+Data=Data[,-33]
+Data=Data[,-30]
+Data=Data[,-30]
+Data=Data[,-30]
+
+#On effectue la regression linéaire
+fitstart=lm(Appliances~1,data=Data)
+fitall=lm(Appliances~.,data=Data)
+
+step.model <- stepAIC(fitstart,scope=formula(fitall), direction = "forward",data=Data,steps=12,trace=F)
+
+step.model.forecast <- predict(step.model, newdata=test[4655:5771,])
+res[4655:5771]=step.model.forecast
+model=gam(Appliances~s(NSM),data=train)
+p=predict(model,newdata=test[4655:5771,])
+p=(p-min(p))/(max(p)-min(p))
+
+#On effectue le modèle mixte
+res2=rep(1,(5771-(4655)))
+res2=51.2*(1-p)+res[(first+1):5771]*p
+mix=data.frame(Appliances=res2)
+
+ggplot()+geom_point(aes(as.numeric(test$date[4655:5771]),step.model.forecast),size=0.1)+geom_line(aes(as.numeric(test$date[4655:5771]),mix$Appliances))+xlab('date')+ylab('Prédiction')
