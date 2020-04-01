@@ -5,9 +5,9 @@ Modèle linéaire / Linéaire / Score Kaggle  67.9
 
 Modèle linéaire avec classification / / Score Kaggle 67.8  
 
-Modèle GAM / / Score Kaggle 70 
+Modèle GAM / Gam et mixte Gam et linéaire / Score Kaggle 70 
 
-Modèle GAM Mixte avec linéaire / / Score Kaggle 69
+Modèle GAM Mixte avec linéaire / Gam et mixte Gam et linéaire / Score Kaggle 69
 
 Modèle Imputation par moyenne pondérée / 
 
