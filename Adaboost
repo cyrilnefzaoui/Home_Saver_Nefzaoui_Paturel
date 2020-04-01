@@ -1,0 +1,40 @@
+### Adaboost
+library(adabag)
+library(caret)
+
+Data=total[,-45]
+Data=Data[,-43]
+Data=Data[,-34]
+Data=Data[,-33]
+Data=Data[,-31]
+Data=Data[,-30]
+Data=Data[,-28]
+Data=Data[,-27]
+Data=Data[,-1]
+n=length(Data$lights)
+Data=Data
+
+Data$DayType=as.numeric(Data$DayType)
+
+###On choisit un sample au hasard pour l'entrainement
+data_size= floor(0.8*nrow(Data))
+index = sample(1:nrow(Data),size=data_size)
+training=Data[index,]
+testing=Data[-index,]
+
+#indexes=createDataPartition(Data$Appliances, p=.90, list = F)
+#training = Data[indexes, ]
+#testing = iris[-indexes, ]
+
+### On appliaque le modèle
+training$Appliances=as.factor(training$Appliances)
+model = boosting(Appliances~., data=training, boos=T, mfinal=50)
+
+testing$Appliances=as.factor(testing$Appliances)
+pred=predict(model,testing)
+pred$class=as.numeric(pred$class)
+pred$class
+length(pred$class)
+length(testing$Appliances)
+testing$Appliances=as.numeric(testing$Appliances)
+rmse(testing$Appliances,pred$class)
