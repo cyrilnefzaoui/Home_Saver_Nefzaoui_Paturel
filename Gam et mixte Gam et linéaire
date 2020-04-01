@@ -116,6 +116,9 @@ Data=Data[,-30]
 Data=Data[,-30]
 Data=Data[,-30]
 
+fitstart=lm(Appliances~1,data=Data)
+fitall=lm(Appliances~.,data=Data)
+
 #On effectue la regression linéaire
 fitstart=lm(Appliances~1,data=Data)
 fitall=lm(Appliances~.,data=Data)
