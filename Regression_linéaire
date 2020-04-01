@@ -1,0 +1,156 @@
+setwd("C:/Users/patur/OneDrive/Bureau/ENSTA/ENSTA Cours/Projet R/TP")
+
+rm(list = objects())#comme clear all, met a jour des var
+
+train=read.csv("Data/train.csv",header=TRUE) #on charge le tableau d'entrainement train
+test=read.csv("Data/test.csv",header=TRUE) #on charge le tableu de résultat test
+
+#### On reconstitue le jeu de données initial 
+library(mltools)
+library(data.table)
+
+#On créer une variable qui vaut 0 si le relevé est issue de train, 1 si c'est dans le test
+yes_is_in_test=rep(1, times = length(test$date)) #On créer la varaible de 1
+test$is_in_test=yes_is_in_test #On attache cette variable au test
+not_in_test=rep(0, times = length(train$date)) #On créer la varaible de 0
+train$is_in_test=not_in_test #On attache cette variable au train
+
+#On reconstitue le tableau initial qui a donné forme aux deux jeu de données
+train_dt=setDT(train, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+test_dt=setDT(test, keep.rownames=FALSE, key=NULL, check.names=FALSE)
+total= merge(train_dt,test_dt,all=TRUE) #On recolle nos deux tableaux ensemble
+#length(which(is.na(total$Appliances))) les valeurs manquantes des appliances du test à compléter figure comme des NA, il y en bien 5771 
+#length(total$lights) vaut 19735
+
+#Puis on réeordonne la série totale en fonction des dates
+total$date <- as.Date(as.character(total$date),tz="GMT",format="%Y-%m-%d %H:%M:%S")
+total=total[order(total$date,total$NSM, decreasing=FALSE),]
+total=total[1:(19735-(5771-4654)),] #On prend seulement les dates à imputer
+
+#On complète les valeurs manquantes
+sequence1=which(is.na(train$RH_6))#Nettoyage des données de RH 
+for (i in sequence1)
+{train$RH_6[i]=10} #Pour les NA on prend comme valeur 10
+
+sequence1=which(is.na(test$RH_6))#Nettoyage des données de RH 
+for (i in sequence1)
+{test$RH_6[i]=10} #Pour les NA on prend comme valeur 10
+
+
+sequence2=which(is.na(train$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(train$Visibility[i+k])==is.na(train$Visibility[i]))
+  {k=k+1}
+  while (is.na(train$Visibility[i-j])==is.na(train$Visibility[i]))
+  {j=j+1}
+  train$Visibility[i]=0.5*(train$Visibility[i-j]+train$Visibility[i+k])
+}#On prend comme valeur pour les NA la moyenne des bords 
+
+sequence2=which(is.na(test$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(test$Visibility[i+k])==is.na(test$Visibility[i]))
+  {k=k+1}
+  while (is.na(test$Visibility[i-j])==is.na(test$Visibility[i]))
+  {j=j+1}
+  test$Visibility[i]=(k/(j+k))*(test$Visibility[i-j])+(j/(j+k))*(test$Visibility[i+k])
+}#On prend comme valeur pour les NA la moyenne pondérée des bords 
+
+library(ggplot2)
+res=test$rv1
+p=1 #Initialisation
+sequence3=which(is.na(total$Appliances))
+for (i in sequence3)
+{
+  k=1
+  j=1
+  while (is.na(total$Appliances[i+k])==is.na(total$Appliances[i]))
+  {k=k+1}
+  while (is.na(total$Appliances[i-j])==is.na(total$Appliances[i]))
+  {j=j+1}
+  total$Appliances[i]=(k/(k+j))*(total$Appliances[i-j])+(j/(j+k))*(total$Appliances[i+k])
+  res[p]=(total$Appliances[i])
+  p=p+1
+}
+
+### Regression linéaire :
+ggplot(data = total)+geom_point(size=0.01)+aes(x = date,y = Appliances)
+level=13000 #On choisit comme donnée d'entrainement les 13000 premières valeurs du train
+
+# On décide de retirer les variables redondantes et non numérique qui n'auraient pas de sens dans une regression
+Data=train[1:level,-1] #On enlève la date qui ne peut être lu
+Data=Data[,-33]
+Data=Data[,-30]
+Data=Data[,-30]
+Data=Data[,-30]
+fitstart=lm(Appliances~1,data=Data)
+fitall=lm(Appliances~.,data=Data)
+
+source("function/rmse.R")
+X=as.matrix(Data[-1])
+M=X%*%(ginv(t(X)%*%X))%*%t(X) #On cherche à connaitre le nombre de degré de liberté 
+deg=sum(diag(M))#le nombre de degrés de libertés est 12
+
+step.modelf=stepAIC(fitstart, direction = "forward",scope=formula(fitall),trace=F,steps=deg)
+step.model.forecastf=predict(step.modelf, newdata=Databis)
+#rmse(y=train$Appliances[level:13964],ychap=step.model.forecastf) le rmse est de 78.9374621296323
+
+plot(train$Appliances[level:13964],type='l')
+lines(step.model.forecast,col='red')
+
+### Classification et régression linéaire :
+
+data=total[15000:18000,]
+
+#La cuisine est elle utilisée ?
+ind=which(data$T1>25.6)  
+ind2=which(test$T1[4655:5771]>25.55)  
+pic4=mean(data$Appliances[ind])
+res[4655:5771][ind2][5]=pic4
+
+#La douche ou baignoire est elle utilisée ?
+ind=which(data$RH_5>70 & data$T5>25.1)          
+ind2=which(test$RH_5[4655:5771]>70 & test$T5[4655:5771]>25)          
+pic5=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic5
+
+#Est ce qu'un habitant fait du repassage ?
+ind=which(data$RH_7>40 & data$T7>25.1 & data$NSM>=63000 & data$NSM<=63600)          
+ind2=which(test$RH_7[4655:5771]>40 & test$T7[4655:5771]>24.5)          
+pic7=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic7
+
+### Si il fait beau le weekend ils vont dehors
+ind=which(data$lights==0 & data$WeekStatus=='Weekend' & data$T_out>23) 
+ind2=which(test[4655:5771,]$lights==0 & test[4655:5771,]$WeekStatus=='Weekend' & test[4655:5771,]$T_out>23)          
+picw=mean(data$Appliances[ind])
+res[4655:5771][ind2]=picw
+
+#Les gens dorment ils ?
+ind=which(data$NSM>84600) 
+ind2=which(0<test[4655:5771,]$NSM & test[4655:5771,]$NSM<3600)          
+pic1=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic1
+
+ind=which(0<data$NSM & data$NSM<3600) 
+ind2=which(0<test[4655:5771,]$NSM & test[4655:5771,]$NSM<3600)          
+pic1=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic1
+
+ind=which(3600<=data$NSM & data$NSM<14000) 
+ind2=which(3600<=test$NSM[4655:5771] & test$NSM[4655:5771]<14000)          
+pic2=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic2
+
+ind=which(14000<=data$NSM & data$NSM<24600) 
+ind2=which(14000<=test$NSM[4655:5771] & test$NSM[4655:5771]<24600)          
+pic3=mean(data$Appliances[ind])
+res[4655:5771][ind2]=pic3
+
+ggplot()+geom_point(aes(x=as.numeric(test$date[4655:5771]),y=step.model.forecast),size=0.1)+geom_line(aes(as.numeric(x=test$date[4655:5771]),y=res[4655:5771]))+xlab('date')+ylab('Prédiction')
+
