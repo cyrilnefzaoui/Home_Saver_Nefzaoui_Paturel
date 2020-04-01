@@ -1,7 +1,7 @@
 rm(list=objects())
 
 
-##importation des différentes bibliothèques
+##importation des diffÃ©rentes bibliothÃ¨ques
 library(tidyverse)
 library(lubridate)
 library(xts)
@@ -14,7 +14,7 @@ library(data.table)
 library(xgboost)
 library(caret)
 
-##Importation des données
+##Importation des donnÃ©es
 setwd("/Users/Nefzaoui/Documents/SIM202/tp1")
 train <- read.csv(file="train.csv", sep=",", dec='.')
 test <- read.csv(file="test.csv", sep=",", dec='.')
@@ -30,7 +30,7 @@ p_moy=(p2+p3+p4)/3
 p_moy_original=p_moy
 
 p_moy=list(p_moy)
-###Méthode de complétion partielle pour conserver les valeurs d'Appliances déjà prédites et vraisemblables
+###MÃ©thode de complÃ©tion partielle pour conserver les valeurs d'Appliances dÃ©jÃ  prÃ©dites et vraisemblables
 p_moy_df=setDT(p_moy, keep.rownames=FALSE, key=NULL, check.names=FALSE)
 p_moy$to_use=rep(0, times = 1117)
 p_moy$to_use[which(p_moy$V1<80)]=1
@@ -51,7 +51,7 @@ train$is_in_test=not_in_test
 test$Appliances=rep(NA, times = length(test$date))
 
 #############
-################Fusion du train et du test à imputer
+################Fusion du train et du test Ã  imputer
 
 train_dt=setDT(train, keep.rownames=FALSE, key=NULL, check.names=FALSE)
 test_dt=setDT(test, keep.rownames=FALSE, key=NULL, check.names=FALSE)
@@ -101,7 +101,7 @@ library(xgboost)
 
 
 
-#####Définition de la structure de controle
+#####DÃ©finition de la structure de controle
 xgb_trcontrol = trainControl(method = "cv", number = 1000,allowParallel = TRUE, verboseIter = TRUE, returnData = FALSE)
 
 #####definitiion du grid
