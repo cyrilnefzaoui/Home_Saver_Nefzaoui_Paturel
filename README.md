@@ -13,7 +13,7 @@ Modèle GAM Mixte avec linéaire / Gam et mixte Gam et linéaire / Score Kaggle 
 
 Modèle Imputation par moyenne pondérée / regression linéaire et classification
 
-Modèle Adaboost
+Modèle Adaboost / Adaboost / Score Kaggle 71
 
 Modèle Randomforest 
 
