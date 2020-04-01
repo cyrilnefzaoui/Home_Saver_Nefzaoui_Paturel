@@ -1,0 +1,96 @@
+setwd("C:/Users/patur/OneDrive/Bureau/ENSTA/ENSTA Cours/Projet R/TP")
+
+rm(list = objects())#comme clear all, met a jour des var
+library(randomForest)
+source('function/rmse.R')
+library(ggplot2)
+
+train=read.csv("Data/train.csv",header=TRUE) #on charge le tableau d'entrainement train
+test=read.csv("Data/test.csv",header=TRUE) #on charge le tableu de résultat test
+ggplot(train,aes(Posan,Appliances))+geom_line()+xlab("Temps")+ylab("Consommation")+ggtitle("Données d'entrainement")
+
+length(test$date)
+train=train[,-1]
+train=train[,-27]
+train=train[,-27]
+str(train)
+
+###Nettoyage de la base de donnÃ©es###
+sequence=which(is.na(train$RH_6))
+for (i in sequence)
+{train$RH_6[i]=10}
+
+which(is.na(train$RH_6))
+#summary(train$RH_6)
+
+ggplot(train,aes(Posan,RH_6))+geom_point(shape=3)+xlab("Temps")+ylab("Humidité")+ggtitle("Relevés RH_6")
+sequence2=which(is.na(train$Visibility))
+for (i in sequence2)
+{
+  k=0
+  j=0
+  while (is.na(train$Visibility[i+k])==is.na(train$Visibility[i]))
+  {k=k+1}
+  while (is.na(train$Visibility[i-j])==is.na(train$Visibility[i]))
+  {j=j+1}
+  train$Visibility[i]=0.5*(train$Visibility[i-j]+train$Visibility[i+k])
+}
+
+which(is.na(train$Visibility))
+
+
+### Debut Random Forest 
+
+train$WeekStatus=as.numeric(train$WeekStatus)
+train$DayType=as.numeric(train$DayType)
+train$Day_of_week=as.numeric(train$Day_of_week)
+train$InstantF=as.numeric(train$InstantF)
+
+### On prend un sample aléatoire d'entrainement et de test
+data_size= floor(0.8*nrow(train))
+index = sample(1:nrow(train),size=data_size)
+
+NSM=train$NSM
+data=data.frame(NSM)
+data$Appliances=train$Appliances
+data$T1=train$T1
+data$T5=train$T5
+data$RH_1=train$RH_1
+data$RH_5=train$RH_5
+data$RH_out=data$RH_out
+data$T_out=data$T_out
+training=data[index,]
+testing=data[-index,]
+
+level=10000
+#rf=randomForest(Appliances~.,data=training,ntree=2000,mtry=5,importance=TRUE)
+#prediction=predict(rf,train[level:13964,])
+#rmse(train$Appliances[level:13964],prediction)
+
+#plot(train$Appliances[level:13964],type='l')
+#lines(prediction,type='l',col='red')
+
+
+### random forest 2 ###
+#library(ggplot2)
+#library(cowplot)
+#model = randomForest(Appliances~.,data=training,proximity=T)
+#names(model)
+#model
+#prediction_model=predict(model,train[level:13964,])
+#rmse(train$Appliances[level:13964],prediction_model)
+
+### On trace l'influence du nombre de noeuds des arbres composant notre foret sur le RMSE
+#RMSE=1:15
+#for (i in 1:15)
+#{
+#  rf=randomForest(Appliances~.,data=training,ntree=1000,mtry=i,importance=TRUE)
+#  prediction=predict(rf,train[level:13964,])
+#  RMSE[i]=rmse(train$Appliances[level:13964],prediction)
+#}
+
+### On applique notre modèle
+rf=randomForest(Appliances~.,data=training,ntree=300,mtry=5,importance=TRUE)
+prediction=predict(rf,test[4655:5771,])
+which(is.na(prediction))
+plot(prediction,type='l')
