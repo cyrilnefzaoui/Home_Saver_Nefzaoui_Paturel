@@ -190,7 +190,7 @@ total_purified=(total_sorted %>% select(-c(rv1,rv2,date,DayType,Instant,lights,V
 Appliances_train_and_imputed=total_sorted$Appliances
 
 vraies_Appliances=xts(ts(Appliances_train_and_imputed),order.by=date_total)
-########## si on veut entrainer un modèle lourd
+########## si on veut entrainer un modÃ¨le lourd
 
 
 test_heavy=(vrai_test  %>% select(-c(Id,rv1,rv2)))
@@ -257,11 +257,11 @@ length(which(is.na(total_heavy_numeric_df_permuted$Appliances)))
 
 
 
-##############completion par foret aléatoires
+##############completion par foret alÃ©atoires
   which(is.na(total_purified$Appliances))
   
 
-####################Si on veut imputer un jeu de données qui comporte DEJA les APPLIANCES à imputer
+####################Si on veut imputer un jeu de donnÃ©es qui comporte DEJA les APPLIANCES Ã  imputer
 library(doParallel)
 library(missForest)
 registerDoParallel(cores=4)
@@ -390,7 +390,7 @@ xgbGrid <- expand.grid(nrounds =2000,  max_depth =c(1:15,length.out=15),colsampl
 #xgbGrid <- expand.grid(nrounds = c(100,200),  
                        max_depth = c(3, 5, 10, 15, 20),
                        colsample_bytree = seq(0.5, 0.9, length.out = 5),
-                       ## valeurs par défaut : 
+                       ## valeurs par dÃ©faut : 
                        eta = 0.1,
                        gamma=0,
                        min_child_weight = 1,
@@ -405,7 +405,7 @@ xgbGrid <- expand.grid(nrounds =2000,  max_depth =c(1:15,length.out=15),colsampl
 "xgbGrid_heavy <- expand.grid(nrounds = c(500,10000),  
                              max_depth =c(1:16,length.out = 15), 
                              colsample_bytree = seq(0.5, 0.9, length.out = 5),
-                             ## valeurs par défaut : 
+                             ## valeurs par dÃ©faut : 
                              eta = 0.01,
                              gamma=0,
                              
